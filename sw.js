@@ -1,4 +1,4 @@
-const CACHE = 'todo-diary-v2';
+const CACHE = 'todo-diary-v3';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './shortcut-add-96.png'];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
