@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#FFFFFF">
+<title>할일 다이어리</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#FFFFFF; --panel:#FEF6F3; --blush:#FCEEEA; --line:#F2E7E3; --line2:#EAD9D3; --divider:#F2DDD6;
+  --ink:#2E2422; --sub:#6E5F5B; --muted:#8C807C; --icon:#B79F98; --strike:#C9B5AE;
+  --accent:#B5604D; --accent-dark:#8E4636; --coral:#E59A86;
+  --font:'Malgun Gothic','맑은 고딕','Noto Sans KR','Apple SD Gothic Neo',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hidden{display:none!important}
+
+.app{height:100dvh;display:flex;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.today{flex:1;min-width:0;display:flex;flex-direction:column;padding:28px 22px 14px 24px}
+.week{display:none}
+@media (min-width:600px){
+  .today{flex:0 0 50%;padding:36px 30px 20px 34px}
+  .week{display:flex;flex:1;min-width:0;flex-direction:column;gap:14px;padding:36px 28px 20px 26px;background:var(--panel);border-left:1px dashed var(--divider)}
+  .fold-hint{display:none}
+}
+
+/* today header */
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.kicker{margin:0;font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--accent)}
+.date-row{display:flex;align-items:center;gap:2px;margin:4px 0 0 -10px}
+.date-row h1{margin:0;font-size:27px;font-weight:700;letter-spacing:-.02em;line-height:1.2;white-space:nowrap}
+.icon-btn{width:44px;height:44px;flex-shrink:0;border:none;border-radius:14px;background:transparent;color:var(--sub);display:flex;align-items:center;justify-content:center}
+.icon-btn:active{background:var(--blush)}
+.count{margin:6px 0 0;font-size:14px;color:var(--sub)}
+.bar{height:6px;border-radius:3px;background:var(--blush);overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;border-radius:3px;background:var(--coral);transition:width .25s}
+
+/* list */
+.list{list-style:none;margin:14px 0 0;padding:0;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.item{display:flex;align-items:center;gap:10px;min-height:56px;border-bottom:1px solid var(--line)}
+.chk{width:44px;height:44px;flex-shrink:0;margin-left:-11px;border:none;background:transparent;display:flex;align-items:center;justify-content:center}
+.box{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--icon);display:flex;align-items:center;justify-content:center}
+.item.done .box{background:var(--coral);border-color:var(--coral)}
+.txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:8px 0}
+.txt span{font-size:17px;line-height:1.4;word-break:keep-all;overflow-wrap:anywhere}
+.item.done .txt span{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--strike)}
+.txt small{font-size:12px;color:var(--accent)}
+.del{width:44px;height:44px;flex-shrink:0;border:none;border-radius:12px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.empty{padding:32px 2px;font-size:15px;line-height:1.7;color:var(--sub)}
+
+.fold-hint{margin:10px 0 0;font-size:12px;color:var(--sub);text-align:center}
+.add{display:flex;gap:8px;align-items:center;margin-top:12px;padding:5px 5px 5px 18px;border:1.5px solid var(--line2);border-radius:28px;background:var(--bg)}
+.add:focus-within{border-color:var(--coral)}
+.add input{flex:1;min-width:0;height:42px;border:none;outline:none;background:transparent;font-size:16px}
+.add input::placeholder{color:var(--icon)}
+.add button{height:44px;padding:0 20px;border:none;border-radius:22px;background:var(--accent);color:#FFFFFF;font-size:15px;font-weight:700}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* week */
+.whead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.whead h2{margin:0;font-size:20px;font-weight:700}
+.whead p{margin:4px 0 0;font-size:13px;color:var(--sub)}
+.wnav{display:flex;align-items:center;gap:2px}
+.pill{height:36px;padding:0 14px;border:1px solid var(--line2);border-radius:18px;background:var(--bg);font-size:13px}
+.days{list-style:none;margin:0;padding:0;flex:1;min-height:0;display:grid;grid-template-rows:repeat(7,minmax(0,1fr));gap:6px}
+.day{width:100%;height:100%;display:flex;gap:12px;align-items:stretch;text-align:left;padding:10px 14px;border-radius:14px;border:1px solid var(--line);background:var(--bg);overflow:hidden}
+.day.is-today{background:var(--blush)}
+.day.is-sel{border:1.5px solid var(--accent)}
+.dlabel{width:40px;flex-shrink:0;display:flex;flex-direction:column}
+.dlabel em{font-style:normal;font-size:12px;font-weight:500;color:var(--sub)}
+.dlabel b{font-size:20px;line-height:1.15}
+.is-today .dlabel em,.is-today .dlabel b{color:var(--accent)}
+.dtodos{flex:1;min-width:0;height:100%;overflow-y:auto;display:flex;flex-direction:column;gap:3px;padding-top:2px}
+.dtodos span{font-size:13px;line-height:1.35;word-break:keep-all}
+.dtodos span.done{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--strike)}
+.dtodos .none{color:var(--icon)}
+
+/* sheet, toast */
+.modal{position:fixed;inset:0;background:rgba(46,36,34,.4);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+@media (min-width:600px){.modal{align-items:center}}
+.sheet{width:100%;max-width:440px;background:var(--bg);border-radius:24px 24px 0 0;padding:22px 22px calc(22px + env(safe-area-inset-bottom,0px))}
+@media (min-width:600px){.sheet{border-radius:24px}}
+.sheet h2{margin:0 0 6px;font-size:19px}
+.sheet .row{display:flex;align-items:center;gap:14px;min-height:54px;width:100%;border:none;border-top:1px solid var(--line);background:none;padding:0;text-align:left;font-size:15px}
+.sheet .row:first-of-type{border-top:none}
+.sheet .row .r{margin-left:auto;font-size:14px;color:var(--sub)}
+.sheet .row svg{color:var(--icon)}
+.tip{margin:8px 0 0;padding:12px 14px;background:var(--blush);border-radius:14px;font-size:13px;line-height:1.6;color:var(--sub)}
+.sheet .close{margin-top:14px;width:100%;height:48px;border:none;border-radius:24px;background:var(--blush);font-size:15px;font-weight:700;color:var(--accent-dark)}
+.dialog{max-width:340px;border-radius:20px;margin:24px;padding:22px;background:var(--bg);display:flex;flex-direction:column;gap:18px}
+.dialog p{margin:0;font-size:15px;line-height:1.6}
+.dialog .acts{display:flex;justify-content:flex-end;gap:8px}
+.dialog .acts button{height:44px;padding:0 18px;border:none;border-radius:22px;background:var(--blush);font-size:15px}
+.dialog .acts .ok{background:var(--accent);color:#FFFFFF}
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:14px;background:var(--ink);color:#FFFFFF;padding:10px 10px 10px 18px;border-radius:16px;font-size:14px;z-index:30;max-width:calc(100% - 40px)}
+.toast button{height:36px;padding:0 12px;border:none;border-radius:12px;background:rgba(255,255,255,.14);color:#FFD9CE;font-size:14px;font-weight:700}
+.toast.plain{padding:12px 18px}
+.sheet{max-height:92dvh;overflow-y:auto}
+.sec-title{margin:18px 0 4px;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--sub)}
+.sec-title:first-of-type{margin-top:8px}
+.field{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.field label{font-size:13px;font-weight:500;color:var(--sub)}
+.field input{height:46px;padding:0 14px;border-radius:12px;border:1.5px solid var(--line2);background:var(--bg);font-size:15px;outline:none}
+.field input:focus{border-color:var(--coral)}
+.btn{margin-top:12px;width:100%;height:48px;border:none;border-radius:24px;background:var(--accent);color:#FFFFFF;font-size:15px;font-weight:700}
+.btn.soft{background:var(--blush);color:var(--accent-dark)}
+.btn-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.btn-row .btn{margin-top:10px}
+.link-btn{margin-top:10px;width:100%;height:40px;border:none;background:none;color:var(--muted);font-size:13px;text-decoration:underline}
+.state{display:inline-flex;align-items:center;gap:6px}
+.state i{width:8px;height:8px;border-radius:4px;background:var(--icon)}
+.state.ok i{background:#5E9C76}.state.err i{background:#C2483A}.state.busy i{background:var(--coral)}
+.sync-dot{position:absolute;top:9px;right:9px;width:8px;height:8px;border-radius:4px;border:1.5px solid var(--bg)}
+.sync-dot.err{background:#C2483A}
+.menu-btn{position:relative}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="today" aria-label="할일">
+    <div class="top">
+      <div>
+        <p class="kicker" id="kicker">오늘</p>
+        <div class="date-row">
+          <button class="icon-btn" data-act="prevDay" aria-label="전날"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M11 4L6 9l5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <h1 id="dayTitle"></h1>
+          <button class="icon-btn" data-act="nextDay" aria-label="다음날"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M7 4l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+      <button class="icon-btn menu-btn" data-act="menu" aria-label="설정, 연동, 백업"><span class="sync-dot hidden" id="syncDot"></span><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="5" cy="11" r="1.6" fill="currentColor"/><circle cx="11" cy="11" r="1.6" fill="currentColor"/><circle cx="17" cy="11" r="1.6" fill="currentColor"/></svg></button>
+    </div>
+    <p class="count" id="count"></p>
+    <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+    <ul class="list" id="list" aria-label="할일 목록"></ul>
+    <p class="fold-hint">펼치면 이번 주 달력이 함께 보여요</p>
+    <form class="add" id="addForm" autocomplete="off">
+      <label class="sr" for="newTodo">새 할일</label>
+      <input id="newTodo" placeholder="할일을 적고 엔터" enterkeyhint="done" maxlength="200">
+      <button type="submit">추가</button>
+    </form>
+  </section>
+
+  <section class="week" aria-label="주간 달력">
+    <div class="whead">
+      <div><h2 id="weekTitle">이번 주</h2><p id="weekRange"></p></div>
+      <div class="wnav">
+        <button class="icon-btn" data-act="prevWeek" aria-label="이전 주"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M11 4L6 9l5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="pill" data-act="today">오늘</button>
+        <button class="icon-btn" data-act="nextWeek" aria-label="다음 주"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M7 4l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </div>
+    <ol class="days" id="days"></ol>
+  </section>
+</div>
+<input type="file" id="importInput" accept=".json,application/json" class="hidden">
+<div id="modalRoot"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- storage (IndexedDB) ---------- */
+const DB_NAME = 'todo-diary', STORE = 'todos';
+let dbp = null;
+function openDB(){
+  if (dbp) return dbp;
+  dbp = new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore(STORE, { keyPath: 'id' }); };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  return dbp;
+}
+async function tx(mode, fn){
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const t = db.transaction(STORE, mode);
+    let out;
+    const r = fn(t.objectStore(STORE));
+    if (r) r.onsuccess = () => { out = r.result; };
+    t.oncomplete = () => res(out);
+    t.onerror = () => rej(t.error);
+    t.onabort = () => rej(t.error);
+  });
+}
+const dbAll = () => tx('readonly', s => s.getAll());
+const dbPut = x => tx('readwrite', s => s.put(x));
+const dbDel = id => tx('readwrite', s => s.delete(id));
+async function dbPutMany(list){
+  if (!list.length) return;
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const t = db.transaction(STORE, 'readwrite');
+    const s = t.objectStore(STORE);
+    list.forEach(x => s.put(x));
+    t.oncomplete = () => res(); t.onerror = () => rej(t.error);
+  });
+}
+async function dbReplaceAll(list){
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const t = db.transaction(STORE, 'readwrite');
+    const s = t.objectStore(STORE);
+    s.clear(); list.forEach(x => s.put(x));
+    t.oncomplete = () => res(); t.onerror = () => rej(t.error);
+  });
+}
+function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+
+/* ---------- dates ---------- */
+const NAMES = ['일','월','화','수','목','금','토'];
+const pad = n => String(n).padStart(2, '0');
+const keyOf = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const parse = k => { const p = k.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); };
+const todayKey = () => keyOf(new Date());
+const addDays = (k, n) => { const d = parse(k); d.setDate(d.getDate() + n); return keyOf(d); };
+const mondayOf = k => { const d = parse(k); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return keyOf(d); };
+const md = k => { const d = parse(k); return (d.getMonth() + 1) + '.' + d.getDate(); };
+const longDay = k => { const d = parse(k); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + NAMES[d.getDay()] + '요일'; };
+
+/* ---------- state ---------- */
+let todos = [];
+let today = todayKey();
+let sel = today;
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const nowISO = () => new Date().toISOString();
+const live = () => todos.filter(t => !t.deleted);
+const ofDay = k => live().filter(t => t.date === k).sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+const strip = t => { const o = Object.assign({}, t); delete o._dirty; return o; };
+function touch(t){ t.updatedAt = nowISO(); t._dirty = true; }
+async function save(list){ try { await dbPutMany(list); } catch(e){ toast('저장하지 못했어요. 폰 저장 공간을 확인하세요.'); } scheduleSync(); }
+
+/* 못 끝낸 할일을 오늘로 옮기기 */
+async function carryOver(){
+  const moved = [];
+  todos.forEach(t => {
+    if (!t.deleted && !t.done && t.date < today){
+      if (!t.fromDate) t.fromDate = t.date;
+      t.date = today; t.carried = true; touch(t);
+      moved.push(t);
+    }
+  });
+  if (moved.length) await save(moved);
+  return moved.length;
+}
+
+/* ---------- render ---------- */
+const CHECK = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 7.2l2.6 2.6L11 4.4" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const TRASH = '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M8 6V4.5h4V6M6 6l.7 9.5h6.6L14 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function render(){ renderToday(); renderWeek(); }
+
+function renderToday(){
+  const list = ofDay(sel);
+  const done = list.filter(t => t.done).length;
+  $('kicker').textContent = sel === today ? '오늘' : sel === addDays(today, -1) ? '어제' : sel === addDays(today, 1) ? '내일' : (sel < today ? '지난 날' : '앞으로');
+  $('dayTitle').textContent = longDay(sel);
+  $('count').textContent = list.length ? list.length + '개 중 ' + done + '개 완료' : '할일 0개';
+  $('bar').style.width = (list.length ? Math.round(done / list.length * 100) : 0) + '%';
+  $('list').innerHTML = list.length ? list.map(t => `
+    <li class="item${t.done ? ' done' : ''}">
+      <button class="chk" data-act="toggle" data-id="${esc(t.id)}" aria-pressed="${!!t.done}" aria-label="${t.done ? '완료 취소' : '완료'}: ${esc(t.text)}"><span class="box">${t.done ? CHECK : ''}</span></button>
+      <div class="txt"><span>${esc(t.text)}</span>${t.carried && !t.done && t.fromDate ? `<small>${md(t.fromDate)}에서 넘어옴</small>` : ''}</div>
+      ${t.done ? `<button class="del" data-act="del" data-id="${esc(t.id)}" aria-label="지우기: ${esc(t.text)}">${TRASH}</button>` : ''}
+    </li>`).join('') : `<li class="empty">${sel < today ? '이 날은 할일이 없어요.' : '아직 적은 할일이 없어요.<br>아래에 적어보세요.'}</li>`;
+}
+
+function renderWeek(){
+  const mon = mondayOf(sel);
+  const diff = Math.round((parse(mon) - parse(mondayOf(today))) / (7 * 864e5));
+  $('weekTitle').textContent = diff === 0 ? '이번 주' : diff === -1 ? '지난주' : diff === 1 ? '다음 주' : (diff < 0 ? (-diff) + '주 전' : diff + '주 후');
+  $('weekRange').textContent = md(mon) + ' (월) – ' + md(addDays(mon, 6)) + ' (일)';
+  let html = '';
+  for (let i = 0; i < 7; i++){
+    const k = addDays(mon, i), d = parse(k), items = ofDay(k);
+    const cls = 'day' + (k === today ? ' is-today' : '') + (k === sel ? ' is-sel' : '');
+    html += `<li><button class="${cls}" data-act="pick" data-k="${k}" aria-label="${longDay(k)}, 할일 ${items.length}개" ${k === sel ? 'aria-current="date"' : ''}>
+      <span class="dlabel"><em>${NAMES[d.getDay()]}</em><b>${d.getDate()}</b></span>
+      <span class="dtodos">${items.length ? items.map(t => `<span${t.done ? ' class="done"' : ''}>${esc(t.text)}</span>`).join('') : '<span class="none">—</span>'}</span>
+    </button></li>`;
+  }
+  $('days').innerHTML = html;
+}
+
+/* ---------- actions ---------- */
+async function addTodo(text){
+  text = text.trim();
+  if (!text) return;
+  const t = { id: uid(), date: sel, text, done: false, createdAt: nowISO() };
+  touch(t);
+  todos.push(t); render();
+  await save([t]);
+  const l = $('list'); l.scrollTop = l.scrollHeight;
+}
+async function toggle(id){
+  const t = todos.find(x => x.id === id); if (!t) return;
+  t.done = !t.done; t.doneAt = t.done ? nowISO() : '';
+  touch(t); render(); await save([t]);
+}
+async function remove(id){
+  const t = todos.find(x => x.id === id); if (!t) return;
+  t.deleted = true; touch(t); render(); await save([t]);
+  toast('지웠어요.', '되돌리기', async () => {
+    t.deleted = false; touch(t); render(); await save([t]);
+  });
+}
+function go(k){ sel = k; render(); }
+
+/* ---------- sync (Google Sheet via Apps Script) ---------- */
+const cfgUrl = () => lsGet('syncUrl') || '';
+const cfgKey = () => lsGet('syncKey') || '';
+const syncOn = () => !!(cfgUrl() && cfgKey());
+let syncing = false, syncAgain = false, syncTimer = null, syncState = 'idle', lastErrToast = 0;
+
+function setSyncState(s){
+  syncState = s;
+  const dot = $('syncDot');
+  if (dot){ dot.className = 'sync-dot' + (s === 'error' || s === 'badkey' ? ' err' : ' hidden'); }
+  const el = $('syncStatus');
+  if (el) el.outerHTML = syncStatusHTML();
+}
+function syncStatusHTML(){
+  const last = lsGet('lastSync');
+  const t = last ? new Date(last) : null;
+  const when = t ? (t.getMonth() + 1) + '.' + t.getDate() + ' ' + pad(t.getHours()) + ':' + pad(t.getMinutes()) : '';
+  const map = {
+    ok: ['ok', '연동됨' + (when ? ' · ' + when : '')],
+    idle: ['ok', '연동됨' + (when ? ' · ' + when : '')],
+    syncing: ['busy', '맞추는 중…'],
+    offline: ['', '인터넷 연결 없음 · 연결되면 맞춰요'],
+    error: ['err', '맞추지 못했어요 · 잠시 후 다시 시도해요'],
+    badkey: ['err', '비밀 키가 맞지 않아요']
+  };
+  const [cls, text] = map[syncState] || map.idle;
+  return `<span class="state ${cls}" id="syncStatus"><i></i>${text}</span>`;
+}
+function scheduleSync(delay){
+  if (!syncOn()) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncNow, delay == null ? 800 : delay);
+}
+async function syncNow(){
+  if (!syncOn()) return false;
+  if (syncing){ syncAgain = true; return false; }
+  if (!navigator.onLine){ setSyncState('offline'); return false; }
+  syncing = true; setSyncState('syncing');
+  const dirty = todos.filter(t => t._dirty);
+  try {
+    const res = await fetch(cfgUrl(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ key: cfgKey(), items: dirty.map(strip) })
+    });
+    const data = await res.json();
+    if (!data || !data.ok) throw new Error(data && data.error === 'bad_key' ? 'bad_key' : 'server');
+    await mergeServer(Array.isArray(data.items) ? data.items : []);
+    lsSet('lastSync', nowISO());
+    syncing = false;
+    setSyncState('ok');
+    await carryOver();
+    render();
+    if (syncAgain || todos.some(t => t._dirty)){ syncAgain = false; scheduleSync(400); }
+    return true;
+  } catch(err){
+    syncing = false;
+    setSyncState(err.message === 'bad_key' ? 'badkey' : 'error');
+    if (Date.now() - lastErrToast > 10 * 60 * 1000){
+      lastErrToast = Date.now();
+      toast(err.message === 'bad_key' ? '연동 비밀 키가 맞지 않아요. 설정을 확인하세요.' : '연동하지 못했어요. 이 기기에는 그대로 저장돼 있어요.');
+    }
+    return false;
+  }
+}
+async function mergeServer(items){
+  const local = new Map(todos.map(t => [t.id, t]));
+  const seen = new Set();
+  const toPut = [], toDel = [];
+  items.forEach(s => {
+    if (!s || !s.id) return;
+    seen.add(s.id);
+    const l = local.get(s.id);
+    if (!l){ todos.push(s); toPut.push(s); return; }
+    if (l._dirty && (l.updatedAt || '') > (s.updatedAt || '')) return; // 이 기기 쪽이 더 최근
+    if (l._dirty || l.updatedAt !== s.updatedAt){
+      Object.keys(l).forEach(k => delete l[k]);
+      Object.assign(l, s);
+      toPut.push(l);
+    }
+  });
+  todos.forEach(l => {
+    if (seen.has(l.id) || l._dirty) return;
+    if (l.deleted) toDel.push(l.id);          // 서버에서 정리된 지운 할일
+    else { l._dirty = true; toPut.push(l); }  // 서버에 없는 할일은 다시 올림
+  });
+  if (toDel.length) todos = todos.filter(t => !toDel.includes(t.id));
+  try {
+    await dbPutMany(toPut);
+    for (const id of toDel) await dbDel(id);
+  } catch(e){}
+}
+async function connect(url, key){
+  url = (url || '').trim(); key = (key || '').trim();
+  if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)){ toast('웹앱 주소는 https://script.google.com/ 으로 시작해야 해요.'); return false; }
+  if (key.length < 8){ toast('비밀 키를 확인하세요.'); return false; }
+  lsSet('syncUrl', url); lsSet('syncKey', key);
+  const mine = todos.filter(t => !t._dirty);
+  mine.forEach(t => { t._dirty = true; if (!t.updatedAt) t.updatedAt = t.createdAt || nowISO(); });
+  try { await dbPutMany(mine); } catch(e){}
+  lastErrToast = Date.now();
+  const ok = await syncNow();
+  if (!ok){
+    lsSet('syncUrl', ''); lsSet('syncKey', '');
+    setSyncState('idle');
+    toast('연결하지 못했어요. 주소와 비밀 키, 배포 설정을 확인하세요.');
+    return false;
+  }
+  toast('연동했어요. 이제 다른 기기와 할일이 맞춰져요.');
+  return true;
+}
+function disconnect(){
+  lsSet('syncUrl', ''); lsSet('syncKey', ''); lsSet('lastSync', '');
+  setSyncState('idle');
+  toast('연동을 끊었어요. 이 기기의 할일은 그대로 남아요.');
+}
+function connectLink(){
+  const code = btoa(unescape(encodeURIComponent(JSON.stringify({ u: cfgUrl(), k: cfgKey() }))));
+  return location.origin + location.pathname + '#connect=' + code;
+}
+function readConnectHash(){
+  const m = location.hash.match(/^#connect=(.+)$/);
+  if (!m) return null;
+  try { history.replaceState(null, '', location.pathname); } catch(e){}
+  try { const o = JSON.parse(decodeURIComponent(escape(atob(m[1])))); return (o && o.u && o.k) ? o : null; } catch(e){ return null; }
+}
+
+/* ---------- settings, sync & backup ---------- */
+function openMenu(){
+  const last = lsGet('lastBackup');
+  const on = syncOn();
+  const syncPart = on ? `
+    <div class="row">${syncStatusHTML()}</div>
+    <div class="btn-row">
+      <button class="btn soft" data-act="syncNow">지금 맞추기</button>
+      <button class="btn soft" data-act="copyLink">다른 기기 연결 링크</button>
+    </div>
+    <p class="tip">다른 기기 연결 링크를 복사해 카카오톡 '나와의 채팅' 등으로 보낸 뒤, 그 기기에서 링크를 열면 바로 연결돼요.</p>
+    <button class="link-btn" data-act="disconnect">이 기기에서 연동 끊기</button>` : `
+    <p class="tip">구글 시트와 연결하면 폰과 컴퓨터의 할일이 같아져요. Apps Script 웹앱 주소와 비밀 키를 넣어주세요.</p>
+    <div class="field"><label for="syncUrl">웹앱 주소</label><input id="syncUrl" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off"></div>
+    <div class="field"><label for="syncKey">비밀 키</label><input id="syncKey" placeholder="시트 info 탭의 SYNC KEY" autocomplete="off"></div>
+    <button class="btn" data-act="connect">연결하기</button>`;
+  $('modalRoot').innerHTML = `<div class="modal" data-act="modal-bg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <h2 id="mTitle">설정</h2>
+    <p class="sec-title">기기 연동</p>
+    ${syncPart}
+    <p class="sec-title">백업</p>
+    <button class="row" data-act="export"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>백업 파일 내보내기</button>
+    <button class="row" data-act="import"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></svg>백업 파일 불러오기</button>
+    <div class="row"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>마지막 백업<span class="r">${last ? last.replace(/-/g, '.') : '아직 없음'}</span></div>
+    <div class="row"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 11l2.5 2.5L16 8"/></svg>전체 할일<span class="r">${live().length}개</span></div>
+    <button class="close" data-act="close">닫기</button>
+  </div></div>`;
+}
+function closeModal(){ $('modalRoot').innerHTML = ''; }
+async function exportBackup(){
+  const data = JSON.stringify({ app: 'todo-diary', version: 1, exportedAt: nowISO(), todos: live().map(strip) }, null, 1);
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = '할일다이어리-백업-' + today + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  lsSet('lastBackup', today);
+  closeModal(); toast('백업 파일을 다운로드 폴더에 저장했어요.');
+}
+function confirmBox(msg, okText){
+  return new Promise(res => {
+    $('modalRoot').innerHTML = `<div class="modal" style="align-items:center"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="cMsg"><p id="cMsg">${esc(msg)}</p><div class="acts"><button id="cNo">취소</button><button class="ok" id="cYes">${esc(okText)}</button></div></div></div>`;
+    $('cNo').onclick = () => { closeModal(); res(false); };
+    $('cYes').onclick = () => { closeModal(); res(true); };
+    $('cYes').focus();
+  });
+}
+async function onImportFile(e){
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  let parsed;
+  try { parsed = JSON.parse(await f.text()); } catch(err){ toast('백업 파일을 읽지 못했어요.'); return; }
+  const list = parsed && Array.isArray(parsed.todos) ? parsed.todos.filter(t => t && t.id && t.text && t.date && !t.deleted) : null;
+  if (!list){ toast('이 파일에는 할일 기록이 없어요.'); return; }
+  const ok = await confirmBox(`백업 파일의 할일 ${list.length}개로 지금 기록(${live().length}개)을 바꿀까요? 지금 기록은 사라지고, 연동된 다른 기기에도 반영돼요.`, '불러오기');
+  if (!ok) return;
+  const ids = new Set(list.map(t => t.id));
+  const gone = todos.filter(t => !ids.has(t.id) && !t.deleted).map(t => { const o = Object.assign({}, t, { deleted: true }); touch(o); return o; });
+  const incoming = list.map(t => { const o = strip(t); touch(o); return o; });
+  todos = incoming.concat(gone);
+  try { await dbReplaceAll(todos); } catch(err){ toast('불러오지 못했어요.'); return; }
+  await carryOver(); render(); scheduleSync(100);
+  toast(`할일 ${list.length}개를 불러왔어요.`);
+}
+
+/* ---------- toast ---------- */
+let toastTimer = null;
+function toast(msg, actText, action){
+  let t = document.querySelector('.toast');
+  if (t) t.remove();
+  t = document.createElement('div');
+  t.className = 'toast' + (actText ? '' : ' plain'); t.setAttribute('role', 'status');
+  t.innerHTML = `<span>${esc(msg)}</span>${actText ? `<button type="button">${esc(actText)}</button>` : ''}`;
+  if (actText) t.querySelector('button').onclick = () => { t.remove(); action(); };
+  document.body.appendChild(t);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.remove(), actText ? 4500 : 2800);
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', async e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  switch (el.dataset.act){
+    case 'toggle': toggle(el.dataset.id); break;
+    case 'del': remove(el.dataset.id); break;
+    case 'pick': go(el.dataset.k); break;
+    case 'prevDay': go(addDays(sel, -1)); break;
+    case 'nextDay': go(addDays(sel, 1)); break;
+    case 'prevWeek': go(addDays(sel, -7)); break;
+    case 'nextWeek': go(addDays(sel, 7)); break;
+    case 'today': go(today); break;
+    case 'menu': openMenu(); break;
+    case 'close': closeModal(); break;
+    case 'modal-bg': if (e.target === el) closeModal(); break;
+    case 'export': exportBackup(); break;
+    case 'import': closeModal(); $('importInput').click(); break;
+    case 'connect': {
+      el.disabled = true; el.textContent = '연결하는 중…';
+      const ok = await connect($('syncUrl').value, $('syncKey').value);
+      if (ok) openMenu(); else { el.disabled = false; el.textContent = '연결하기'; }
+      break;
+    }
+    case 'syncNow': lastErrToast = 0; syncNow(); break;
+    case 'copyLink': {
+      const link = connectLink();
+      try { await navigator.clipboard.writeText(link); toast('연결 링크를 복사했어요. 다른 기기로 보내 열어보세요.'); }
+      catch(err){ prompt('이 링크를 복사해서 다른 기기에서 여세요', link); }
+      break;
+    }
+    case 'disconnect': {
+      const ok = await confirmBox('이 기기에서 연동을 끊을까요? 할일은 이 기기에 그대로 남아요.', '연동 끊기');
+      if (ok) disconnect();
+      break;
+    }
+  }
+});
+$('addForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const i = $('newTodo'); addTodo(i.value); i.value = '';
+});
+$('importInput').addEventListener('change', onImportFile);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* 날짜가 바뀐 뒤 앱을 다시 열면 오늘로 맞추고 이월 */
+async function checkNewDay(){
+  const now = todayKey();
+  if (now === today) return;
+  const wasToday = sel === today;
+  today = now;
+  if (wasToday) sel = today;
+  const n = await carryOver();
+  render();
+  if (n) toast(`못 끝낸 할일 ${n}개를 오늘로 옮겼어요.`);
+}
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible') return;
+  await checkNewDay();
+  syncNow();
+});
+window.addEventListener('online', () => syncNow());
+window.addEventListener('offline', () => { if (syncOn()) setSyncState('offline'); });
+setInterval(() => { if (document.visibilityState === 'visible') syncNow(); }, 30000);
+
+/* ---------- start ---------- */
+(async function start(){
+  try { todos = await dbAll() || []; } catch(e){ todos = []; toast('기록을 불러오지 못했어요.'); }
+  const cutoff = new Date(Date.now() - 30 * 864e5).toISOString();
+  const stale = todos.filter(t => t.deleted && !t._dirty && (t.updatedAt || '') < cutoff);
+  if (stale.length){ todos = todos.filter(t => !stale.includes(t)); try { for (const t of stale) await dbDel(t.id); } catch(e){} }
+  const n = await carryOver();
+  render();
+  if (n) toast(`못 끝낸 할일 ${n}개를 오늘로 옮겼어요.`);
+  const params = new URLSearchParams(location.search);
+  if (params.get('action') === 'add'){
+    setTimeout(() => $('newTodo').focus(), 150);
+    try { history.replaceState(null, '', location.pathname); } catch(e){}
+  }
+  const link = readConnectHash();
+  if (link) await connect(link.u, link.k);
+  else syncNow();
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
+  if ('serviceWorker' in navigator && location.protocol === 'https:'){
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+})();
+})();
+</script>
+</body>
+</html>

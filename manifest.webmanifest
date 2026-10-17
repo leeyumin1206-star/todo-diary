@@ -1,0 +1,25 @@
+{
+  "name": "할일 다이어리",
+  "short_name": "할일",
+  "description": "개인용 할일 다이어리",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
+  "lang": "ko",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "할일 추가",
+      "short_name": "할일 추가",
+      "description": "바로 새 할일 입력",
+      "url": "./?action=add",
+      "icons": [{ "src": "shortcut-add-96.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ]
+}
