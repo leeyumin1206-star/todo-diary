@@ -27,7 +27,7 @@ button{cursor:pointer}
 .hidden{display:none!important}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
-.app{height:100dvh;display:flex;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.app{height:var(--vvh,100dvh);display:flex;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 .today{flex:1;min-width:0;display:flex;flex-direction:column;padding:16px 16px 12px;overflow:hidden}
 .week{display:none}
 @media (min-width:600px){
@@ -102,6 +102,19 @@ button{cursor:pointer}
 .dtodos span{font-size:13px;line-height:1.35;word-break:keep-all}
 .dtodos span.done{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
 .dtodos .none{color:var(--faint)}
+
+/* 키보드가 올라와 있을 때: 위쪽을 한 줄로 줄여서 목록이 보이게 */
+body.typing .today{padding-top:8px;padding-bottom:8px}
+body.typing .hero{padding:4px 8px 4px 16px;border-radius:22px}
+body.typing .hero-top,body.typing .count,body.typing .bar,body.typing .label,body.typing .fold-hint{display:none}
+body.typing .date-row{margin-top:0}
+body.typing .date-row h1{font-size:18px}
+body.typing .date-row .circle{background:transparent}
+body.typing .list{margin-top:8px}
+body.typing .item{min-height:50px}
+body.typing .txt{padding:6px 0}
+body.typing .add{margin-top:8px}
+body.typing .toast{bottom:76px}
 
 /* sheet, dialog, toast */
 .modal{position:fixed;inset:0;background:rgba(20,20,30,.28);display:flex;align-items:flex-end;justify-content:center;z-index:20}
@@ -638,6 +651,35 @@ document.addEventListener('keydown', e => {
 document.addEventListener('focusout', e => {
   if (e.target && e.target.id === 'editInput' && !rerendering && editingId) finishEdit(true);
 });
+
+/* ---------- 키보드 대응 ----------
+   글자 칸에 입력 중이면 위쪽 카드를 한 줄로 줄이고,
+   화면 높이를 키보드 위 보이는 영역에 맞춰요. */
+const isField = el => el && (el.id === 'newTodo' || el.id === 'editInput');
+function fitViewport(){
+  const vv = window.visualViewport;
+  if (vv) document.documentElement.style.setProperty('--vvh', Math.round(vv.height) + 'px');
+}
+function updateTyping(){
+  const on = isField(document.activeElement) && !$('modalRoot').innerHTML;
+  document.body.classList.toggle('typing', on);
+  fitViewport();
+  if (on){
+    const t = document.activeElement;
+    setTimeout(() => {
+      if (t.id === 'editInput') t.scrollIntoView({ block: 'nearest' });
+      else { const l = $('list'); l.scrollTop = l.scrollHeight; }
+    }, 60);
+  }
+}
+document.addEventListener('focusin', e => { if (isField(e.target)){ clearTimeout(typingTimer); updateTyping(); } });
+// 조금 기다렸다 판단해야, 입력칸에서 다른 할일을 누를 때 화면이 움직여 잘못 눌리지 않아요
+let typingTimer = null;
+document.addEventListener('focusout', () => { clearTimeout(typingTimer); typingTimer = setTimeout(updateTyping, 250); });
+if (window.visualViewport){
+  window.visualViewport.addEventListener('resize', () => { fitViewport(); window.scrollTo(0, 0); });
+}
+fitViewport();
 
 /* 날짜가 바뀐 뒤 앱을 다시 열면 오늘로 맞추고 이월 */
 async function checkNewDay(){
